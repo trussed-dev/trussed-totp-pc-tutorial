@@ -64,7 +64,7 @@ impl<T: trussed::Client> Authenticator<T> {
 
         // 3. Generate credential
         let credential = Credential {
-            label: ByteBuf::from(label.as_bytes()),
+            label: ByteBuf::try_from_slice(label.as_bytes()).unwrap(),
             period: *period,
             handle,
         };
@@ -78,7 +78,7 @@ impl<T: trussed::Client> Authenticator<T> {
         syscall!(self.trussed.write_file(
             StorageLocation::Internal,
             filename,
-            ByteBuf::from(&*serialized_credential),
+            ByteBuf::try_from_slice(&*serialized_credential).unwrap(),
             None
         ));
 
@@ -97,7 +97,7 @@ impl<T: trussed::Client> Authenticator<T> {
             filename,
         )).data;
 
-        let credential: Credential = postcard::from_bytes(serialized_credential.as_slice()).unwrap();
+        let credential: Credential = postcard::from_bytes(serialized_credential.as_ref()).unwrap();
         debug!("found credential: {:?}", &credential);
 
         // 2. Calculate OTP
@@ -126,7 +126,7 @@ impl<T: trussed::Client> Authenticator<T> {
     }
 
     fn filename_for_label(&mut self, label: &str) -> trussed::types::PathBuf {
-        let filename = syscall!(self.trussed.hash(Mechanism::Sha256, Message::from(label.as_bytes()))).hash;
+        let filename = syscall!(self.trussed.hash(Mechanism::Sha256, Message::try_from_slice(label.as_bytes()).unwrap())).hash;
 
         fn format_hex(data: &[u8], mut buffer: &mut [u8]) {
             const HEX_CHARS: &[u8] = b"0123456789abcdef";

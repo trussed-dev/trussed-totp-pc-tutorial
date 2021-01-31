@@ -13,17 +13,13 @@ clap = { version = "2.33.3", default-features = false }
 data-encoding = "2.3.2"
 delog = "0.1.0-alpha.3"
 generic-array = "0.14.3"
-littlefs2 = { git = "https://github.com/nickray/littlefs2", branch = "closures-instead-of-ub" }
+littlefs2 = "0.1.0"
 log = "0.4.14"
 postcard = "0.5.1"
 rand_core = { version = "0.5.1", features = ["getrandom"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 simple_logger = "1.11.0"
 
-# is this possible?
-# trussed = { git = "ssh://git@github.com/nickray/solo-bee.git", branch = "main"}
-trussed = { path = "../solo-bee/components/trussed", features = ["clients-1"] }
-
-[patch.crates-io]
-heapless = { git = "https://github.com/nickray/heapless", branch = "bytebuf-0.5.6" }
-nisty = { git = "https://github.com/ycrypto/nisty", branch = "main" }
+# need access to the repository for this
+trussed = { git = "ssh://git@github.com/trussed-dev/trussed.git", branch = "main", features = ["clients-1"] }
+# trussed = { path = "../trussed", features = ["clients-1"] }

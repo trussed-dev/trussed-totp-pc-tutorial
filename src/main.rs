@@ -20,7 +20,7 @@ fn main() -> Result<()> {
     let state_file: &str = args.value_of("STATE-FILE").unwrap();
     let board = board::init_board(state_file);
     let mut trussed_service = trussed::service::Service::new(board);
-    let (totp_requester, totp_responder) = trussed::pipe::TrussedInterchange::claim(0).unwrap();
+    let (totp_requester, totp_responder) = trussed::pipe::TrussedInterchange::claim().unwrap();
     let totp_client_id = littlefs2::path::PathBuf::from(b"totp");
     assert!(trussed_service.add_endpoint(totp_responder, totp_client_id).is_ok());
     // In real life, the second parameter is a `Syscall` implementation, that signals to the
