@@ -1,3 +1,7 @@
+//! Trussed stores are built on underlying `littlefs` implementations.
+//!
+//! Here, we use a single binary file-backed littlefs implementation for
+//! persistent storage, and RAM array-backed implementations for the volatile storage.
 use std::{fs::File, io::{Seek as _, SeekFrom}};
 
 pub use generic_array::{GenericArray, typenum::{consts, U16, U256, U512, U1022}};
@@ -6,6 +10,7 @@ use log::info;
 use trussed::types::{LfsResult, LfsStorage};
 
 const_ram_storage!(VolatileStorage, 1024);
+// currently, `trussed` needs a dummy parameter here
 const_ram_storage!(ExternalStorage, 1024);
 
 trussed::store!(Store,

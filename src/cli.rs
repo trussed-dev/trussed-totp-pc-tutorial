@@ -8,7 +8,15 @@ use clap::{
     SubCommand,
 };
 
-use crate::totp::{Authenticate, Command, Register};
+use crate::authenticator::{Authenticate, Command, Register};
+
+pub fn init_cli() -> (clap::ArgMatches<'static>, String) {
+    let clap_app = clap_app();
+    let matches = clap_app.get_matches();
+    // no panic - clap enforces the value's existence
+    let state_file: String = matches.value_of("STATE-FILE").unwrap().into();
+    (matches, state_file.into())
+}
 
 const ABOUT: &str = "
 An example app, using Trussed™, running on PC, implementing TOTP.
@@ -16,7 +24,7 @@ An example app, using Trussed™, running on PC, implementing TOTP.
 Project homepage: <https://github.com/trussed-dev/trussed-totp-pc-tutorial>.
 ";
 
-pub fn app() -> clap::App<'static, 'static> {
+pub fn clap_app() -> clap::App<'static, 'static> {
 
     let app = App::new("trussed-otp-pc-tutorial")
         .author(crate_authors!())
@@ -69,7 +77,6 @@ pub fn app() -> clap::App<'static, 'static> {
     ;
 
     app
-
 }
 
 impl TryFrom<&'_ clap::ArgMatches<'static>> for Command {
@@ -78,8 +85,8 @@ impl TryFrom<&'_ clap::ArgMatches<'static>> for Command {
         if let Some(command) = args.subcommand_matches("register") {
             return Ok(Command::Register(Register {
                 label: command.value_of("label").unwrap().into(),
-                secret: command.value_of("secret").unwrap().into(),
-                period: 30,
+                base32_secret: command.value_of("secret").unwrap().into(),
+                period_seconds: 30,
             }));
         }
 

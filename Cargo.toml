@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Nicolas Stalder <nicolas@solokeys.com>"]
 edition = "2018"
 
+[lib]
+name = "tutorial"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -18,7 +21,8 @@ log = "0.4.14"
 postcard = "0.5.1"
 rand_core = { version = "0.5.1", features = ["getrandom"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
-simple_logger = "1.11.0"
+pretty_env_logger = "0.4.0"
+thiserror = "1"
 
 # need access to the repository for this
 trussed = { git = "ssh://git@github.com/trussed-dev/trussed.git", branch = "main", features = ["clients-1"] }

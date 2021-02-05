@@ -1,6 +1,5 @@
 pub use anyhow::Result;
 
-pub mod board;
+pub mod authenticator;
 pub mod cli;
-pub mod store;
-pub mod totp;
+pub mod platform;

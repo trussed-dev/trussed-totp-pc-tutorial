@@ -1,22 +1,22 @@
-use trussed::{board, platform::{consent, reboot, ui}};
+use trussed::platform::{consent, reboot, ui};
 
-use crate::store;
+pub mod store;
 
-board!(Board,
+trussed::platform!(Platform,
     R: chacha20::ChaCha8Rng,
     S: store::Store,
     UI: UserInterface,
 );
 
-pub fn init_board(state_path: impl AsRef<std::path::Path>) -> Board {
+pub fn init_platform(state_path: impl AsRef<std::path::Path>) -> Platform {
     use trussed::service::SeedableRng;
     let rng = chacha20::ChaCha8Rng::from_rng(rand_core::OsRng).unwrap();
     let store = store::init_store(state_path);
     let ui = UserInterface::new();
 
-    let board = Board::new(rng, store, ui);
+    let platform = Platform::new(rng, store, ui);
 
-    board
+    platform
 }
 
 pub struct UserInterface {
