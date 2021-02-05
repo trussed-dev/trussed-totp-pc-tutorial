@@ -1,3 +1,5 @@
+//! Implementation of `trussed::Platform` trait for our platform, PC
+
 use trussed::platform::{consent, reboot, ui};
 
 pub mod store;

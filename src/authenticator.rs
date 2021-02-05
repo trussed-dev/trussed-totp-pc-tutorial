@@ -1,3 +1,5 @@
+//! The example TOTP authenticator of this tutorial.
+
 use core::convert::TryInto;
 
 use delog::hex_str;

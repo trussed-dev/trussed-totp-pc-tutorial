@@ -1,3 +1,4 @@
+//! Implementation of the CLI, an "interface" for our "runner".
 use core::convert::TryFrom;
 
 use anyhow::{Error, Result};
@@ -10,6 +11,7 @@ use clap::{
 
 use crate::authenticator::{Authenticate, Command, Register};
 
+/// entry point to the CLI
 pub fn init_cli() -> (clap::ArgMatches<'static>, String) {
     let clap_app = clap_app();
     let matches = clap_app.get_matches();
@@ -24,6 +26,7 @@ An example app, using Trussed™, running on PC, implementing TOTP.
 Project homepage: <https://github.com/trussed-dev/trussed-totp-pc-tutorial>.
 ";
 
+/// defines the commands, flags, arguments and options of the CLI
 pub fn clap_app() -> clap::App<'static, 'static> {
 
     let app = App::new("trussed-otp-pc-tutorial")

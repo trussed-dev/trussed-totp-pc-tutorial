@@ -3,6 +3,9 @@ use core::convert::TryFrom;
 use anyhow::Result;
 use log::info;
 
+// #[cfg(feature = "include-main-in-lib-for-docs")]
+// use crate::{authenticator, cli, platform};
+// #[cfg(not(feature = "include-main-in-lib-for-docs"))]
 use tutorial::{authenticator, cli, platform};
 
 
@@ -23,7 +26,7 @@ use tutorial::{authenticator, cli, platform};
 ///   process a `Command`, using its Trussed client for crypto, storage, and UI.
 /// - the piping necessary to pack everything up into a runner
 ///
-fn main() -> Result<()> {
+pub fn main() -> Result<()> {
 
     pretty_env_logger::init();
     info!("Welcome to the tutorial.");
