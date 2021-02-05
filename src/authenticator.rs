@@ -1,4 +1,11 @@
 //! The example TOTP authenticator of this tutorial.
+//!
+//! While not a requirement from Trussed™, we use a pattern of declaring
+//! command/request inputs (`Register` and `Authenticate`) as Rust structs.
+//!
+//! This pushes (or can help to push) the question of lower-level protocol
+//! encodings outside of the "app", which can then focus even more on
+//! implementing the exact logic required.
 
 use core::convert::TryInto;
 
@@ -22,6 +29,7 @@ where
 #[derive(Clone, Debug, PartialEq)]
 /// One of the two commands this authenticator can process: credential registration
 pub struct Register {
+    /// Label for the credential, e.g. `alice@trussed.dev`
     pub label: String,
     /// Choices could be made here on who is responsible for decoding the raw secret bytes
     pub base32_secret: String,
@@ -33,20 +41,24 @@ pub struct Register {
 /// One of the two commands this authenticator can process: authentication with a registered
 /// credential
 pub struct Authenticate {
+    /// Label for the credential, e.g. `alice@trussed.dev`
     pub label: String,
+    /// Timestamp (seconds since UNIX epoch)
     // pub timestamp: std::time::Instant,
     pub timestamp: u64,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 /// The public API of this TOTP authenticator
+#[allow(missing_docs)]
 pub enum Command {
     Register(Register),
     Authenticate(Authenticate),
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Otp(u64);
+/// Contains a one-time password
+pub struct Otp(pub u64);
 
 /// OTP codes are typically presented as left-zero-padded strings
 impl core::fmt::Display for Otp {
@@ -68,6 +80,7 @@ pub struct Credential {
 }
 
 impl<T: trussed::Client> Authenticator<T> {
+    /// Constructor, consumes a Trussed client
     pub fn new(trussed: T) -> Self {
         Self { trussed }
     }
@@ -116,6 +129,8 @@ impl<T: trussed::Client> Authenticator<T> {
         Ok(())
     }
 
+    /// Looks up a previously registered credential (else fails),
+    /// create a TOTP using the supplied timestamp.
     pub fn authenticate(&mut self, parameters: &Authenticate) -> Result<Otp> {
         let Authenticate { label, timestamp } = parameters;
         debug!("authenticate {:?}", parameters);
@@ -151,6 +166,9 @@ impl<T: trussed::Client> Authenticator<T> {
             counter,
         )).signature;
 
+        try_syscall!(self.trussed.confirm_user_present(5_000))
+            .map_err(|_| anyhow::anyhow!("Could not obtain confirmation of user presence!"))?;
+
         let otp = u64::from_le_bytes(otp[..8].try_into().unwrap());
         debug!("calculated OTP: {}", otp);
 
@@ -176,6 +194,7 @@ impl<T: trussed::Client> Authenticator<T> {
 /// of `std` Errors here, we need a wrapper type (the error trait is not implemented for `()`).
 pub enum EmptyError {
     #[error("no error")]
+    /// The empty singleton
     Empty,
 }
 

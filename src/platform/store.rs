@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 //! Trussed stores are built on underlying `littlefs` implementations.
 //!
 //! Here, we use a single binary file-backed littlefs implementation for

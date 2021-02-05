@@ -1,3 +1,4 @@
+#![deny(missing_docs)]
 //! # Trussed™-based TOTP authenticator, for PC.
 //!
 //! This is a demo implementation of a TOTP authenticator, built on [Trussed™][trussed].
