@@ -28,6 +28,3 @@ thiserror = "1"
 # need access to the repository for this
 trussed = { git = "ssh://git@github.com/trussed-dev/trussed.git", branch = "main", features = ["clients-1"] }
 # trussed = { path = "../trussed", features = ["clients-1"] }
-
-# [features]
-# include-main-in-lib-for-docs = []

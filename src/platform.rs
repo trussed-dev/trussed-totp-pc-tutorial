@@ -1,6 +1,8 @@
 #![allow(missing_docs)]
 //! Implementation of `trussed::Platform` trait for our platform, PC
 
+use log::info;
+
 use trussed::platform::{consent, reboot, ui};
 
 pub mod store;
@@ -49,12 +51,14 @@ impl trussed::platform::UserInterface for UserInterface
     }
 
     fn set_status(&mut self, status: ui::Status) {
-        println!("Set status: {:?}", status);
+        info!("Set status: {:?}", status);
 
-        use std::io::{Write as _};
-        let mut stdout = std::io::stdout();
-        write!(stdout, "Press ENTER to confirm (Ctrl-C to abort): ").ok();
-        stdout.flush().unwrap();
+        if status == ui::Status::WaitingForUserPresence {
+            use std::io::{Write as _};
+            let mut stdout = std::io::stdout();
+            write!(stdout, "Press ENTER to confirm (Ctrl-C to abort): ").ok();
+            stdout.flush().unwrap();
+        }
     }
 
     fn refresh(&mut self) {}
@@ -64,7 +68,7 @@ impl trussed::platform::UserInterface for UserInterface
     }
 
     fn reboot(&mut self, to: reboot::To) -> ! {
-        println!("Restart!  ({:?})", to);
+        info!("Restart!  ({:?})", to);
         std::process::exit(25);
     }
 
