@@ -5,7 +5,7 @@
 //! persistent storage, and RAM array-backed implementations for the volatile storage.
 use std::{fs::File, io::{Seek as _, SeekFrom}};
 
-pub use generic_array::{GenericArray, typenum::{consts, U16, U256, U512, U1022}};
+pub use generic_array::{GenericArray, typenum::{consts, U16, U128, U256, U1022}};
 use littlefs2::{const_ram_storage, fs::{Allocation, Filesystem}};
 use log::info;
 use trussed::types::{LfsResult, LfsStorage};
@@ -16,8 +16,6 @@ const_ram_storage!(ExternalStorage, 1024);
 
 trussed::store!(Store,
     Internal: FileFlash,
-    // External: FileFlash,
-    // Volatile: FileFlash
     External: ExternalStorage,
     Volatile: VolatileStorage
 );
@@ -50,41 +48,22 @@ impl FileFlash {
     }
 }
 
-#[allow(non_camel_case_types)]
-pub mod littlefs_params {
-    use super::*;
-    pub const READ_SIZE: usize = 16;
-    pub const WRITE_SIZE: usize = 512;
-    pub const BLOCK_SIZE: usize = 512;
-
-    pub const BLOCK_COUNT: usize = 256;
-    // no wear-leveling for now
-    pub const BLOCK_CYCLES: isize = -1;
-
-    pub type CACHE_SIZE = U512;
-    pub type LOOKAHEADWORDS_SIZE = U16;
-    /// TODO: We can't actually be changed currently
-    pub type FILENAME_MAX_PLUS_ONE = U256;
-    pub type PATH_MAX_PLUS_ONE = U256;
-    pub const FILEBYTES_MAX: usize = littlefs2::ll::LFS_FILE_MAX as _;
-    /// TODO: We can't actually be changed currently
-    pub type ATTRBYTES_MAX = U1022;
-}
-
 impl littlefs2::driver::Storage for FileFlash {
-    const READ_SIZE: usize = littlefs_params::READ_SIZE;
-    const WRITE_SIZE: usize = littlefs_params::WRITE_SIZE;
-    const BLOCK_SIZE: usize = littlefs_params::BLOCK_SIZE;
+    const READ_SIZE: usize = 8;
+    const WRITE_SIZE: usize = 8;
+    const BLOCK_SIZE: usize = 128;
 
-    const BLOCK_COUNT: usize = littlefs_params::BLOCK_COUNT;
-    const BLOCK_CYCLES: isize = littlefs_params::BLOCK_CYCLES;
+    const BLOCK_COUNT: usize = 1024;
+    const BLOCK_CYCLES: isize = -1;
 
-    type CACHE_SIZE = littlefs_params::CACHE_SIZE;
-    type LOOKAHEADWORDS_SIZE = littlefs_params::LOOKAHEADWORDS_SIZE;
-    type FILENAME_MAX_PLUS_ONE = littlefs_params::FILENAME_MAX_PLUS_ONE;
-    type PATH_MAX_PLUS_ONE = littlefs_params::PATH_MAX_PLUS_ONE;
-    const FILEBYTES_MAX: usize = littlefs_params::FILEBYTES_MAX;
-    type ATTRBYTES_MAX = littlefs_params::ATTRBYTES_MAX;
+    type CACHE_SIZE = U128;
+    type LOOKAHEADWORDS_SIZE = U16;
+    /// TODO: We can't actually be changed currently
+    type FILENAME_MAX_PLUS_ONE = U256;
+    type PATH_MAX_PLUS_ONE = U256;
+    const FILEBYTES_MAX: usize = littlefs2::ll::LFS_FILE_MAX as _;
+    /// TODO: We can't actually be changed currently
+    type ATTRBYTES_MAX = U1022;
 
 
     fn read(&self, offset: usize, buffer: &mut [u8]) -> LfsResult<usize> {
