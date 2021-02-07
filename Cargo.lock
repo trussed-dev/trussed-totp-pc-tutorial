@@ -485,9 +485,9 @@ dependencies = [
 
 [[package]]
 name = "interchange"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91bbac5eb0205c6930a6467de89800d42ae9edd583f6cf0466ddfca3004c0a01"
+checksum = "e8edac3dbf91197d7eb362bcc6a0cbbc8be882349b6bf1b3d6fbae2e3407f7c7"
 
 [[package]]
 name = "lazy_static"
@@ -724,7 +724,7 @@ checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 [[package]]
 name = "salty"
 version = "0.2.0-alpha.0"
-source = "git+https://github.com/ycrypto/salty?branch=main#79b10082f43cd44b78eedf529f5326aaf8cf059c"
+source = "git+https://github.com/ycrypto/salty?branch=main#f69312b110ca49fee1ce35e22527e6e103641ea5"
 dependencies = [
  "cosey",
  "subtle 2.4.0",
@@ -901,7 +901,7 @@ dependencies = [
 [[package]]
 name = "trussed"
 version = "0.1.0"
-source = "git+ssh://git@github.com/trussed-dev/trussed.git?branch=main#f9745b32539cc5be089c3029a44a4976ea0bc6e3"
+source = "git+ssh://git@github.com/trussed-dev/trussed.git?branch=main#8698b64a8ccd8bf37b2844282498051ef98e3573"
 dependencies = [
  "aes",
  "block-cipher-trait",

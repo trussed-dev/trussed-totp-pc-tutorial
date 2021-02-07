@@ -24,66 +24,7 @@ trussed::store!(Store,
 
 pub fn init_store(state_path: impl AsRef<std::path::Path>) -> Store {
     let filesystem = FileFlash::new(state_path);
-    // let external = FileFlash::new("/tmp/external.littlefs2");
-    // let volatile = FileFlash::new("/tmp/volatile.littlefs2");
-
-    static mut INTERNAL_STORAGE: Option<FileFlash> = None;
-    unsafe { INTERNAL_STORAGE = Some(filesystem); }
-    static mut INTERNAL_FS_ALLOC: Option<Allocation<FileFlash>> = None;
-    unsafe { INTERNAL_FS_ALLOC = Some(Filesystem::allocate()); }
-
-//     static mut EXTERNAL_STORAGE: Option<FileFlash> = None;
-//     unsafe { EXTERNAL_STORAGE = Some(external); }
-//     static mut EXTERNAL_FS_ALLOC: Option<Allocation<FileFlash>> = None;
-//     unsafe { EXTERNAL_FS_ALLOC = Some(Filesystem::allocate()); }
-
-//     static mut VOLATILE_STORAGE: Option<FileFlash> = None;
-//     unsafe { VOLATILE_STORAGE = Some(volatile); }
-//     static mut VOLATILE_FS_ALLOC: Option<Allocation<FileFlash>> = None;
-//     unsafe { VOLATILE_FS_ALLOC = Some(Filesystem::allocate()); }
-
-    static mut EXTERNAL_STORAGE: ExternalStorage = ExternalStorage::new();
-    static mut EXTERNAL_FS_ALLOC: Option<Allocation<ExternalStorage>> = None;
-    unsafe { EXTERNAL_FS_ALLOC = Some(Filesystem::allocate()); }
-
-    static mut VOLATILE_STORAGE: VolatileStorage = VolatileStorage::new();
-    static mut VOLATILE_FS_ALLOC: Option<Allocation<VolatileStorage>> = None;
-    unsafe { VOLATILE_FS_ALLOC = Some(Filesystem::allocate()); }
-
-
-    let store = Store::claim().unwrap();
-
-    if store.mount(
-        unsafe { INTERNAL_FS_ALLOC.as_mut().unwrap() },
-        unsafe { INTERNAL_STORAGE.as_mut().unwrap() },
-        // unsafe { EXTERNAL_FS_ALLOC.as_mut().unwrap() },
-        // unsafe { EXTERNAL_STORAGE.as_mut().unwrap() },
-        // unsafe { VOLATILE_FS_ALLOC.as_mut().unwrap() },
-        // unsafe { VOLATILE_STORAGE.as_mut().unwrap() },
-        unsafe { EXTERNAL_FS_ALLOC.as_mut().unwrap() },
-        unsafe { &mut EXTERNAL_STORAGE },
-        unsafe { VOLATILE_FS_ALLOC.as_mut().unwrap() },
-        unsafe { &mut VOLATILE_STORAGE },
-        // to trash existing data, set to true
-        false,
-    ).is_err() {
-        store.mount(
-            unsafe { INTERNAL_FS_ALLOC.as_mut().unwrap() },
-            unsafe { INTERNAL_STORAGE.as_mut().unwrap() },
-            // unsafe { EXTERNAL_FS_ALLOC.as_mut().unwrap() },
-            // unsafe { EXTERNAL_STORAGE.as_mut().unwrap() },
-            // unsafe { VOLATILE_FS_ALLOC.as_mut().unwrap() },
-            // unsafe { VOLATILE_STORAGE.as_mut().unwrap() },
-            unsafe { EXTERNAL_FS_ALLOC.as_mut().unwrap() },
-            unsafe { &mut EXTERNAL_STORAGE },
-            unsafe { VOLATILE_FS_ALLOC.as_mut().unwrap() },
-            unsafe { &mut VOLATILE_STORAGE },
-            // to trash existing data, set to true
-            true,
-        ).unwrap();
-    };
-
-    store
+    Store::attach_else_format(filesystem, ExternalStorage::new(), VolatileStorage::new())
 }
 
 pub struct FileFlash {

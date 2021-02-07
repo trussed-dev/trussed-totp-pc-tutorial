@@ -79,7 +79,10 @@ pub struct Credential {
     key_handle: trussed::types::ObjectHandle,
 }
 
-impl<T: trussed::Client> Authenticator<T> {
+impl<T> Authenticator<T>
+where
+    T: trussed::client::Totp
+{
     /// Constructor, consumes a Trussed client
     pub fn new(trussed: T) -> Self {
         Self { trussed }

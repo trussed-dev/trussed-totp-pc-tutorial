@@ -26,5 +26,5 @@ pretty_env_logger = "0.4.0"
 thiserror = "1"
 
 # need access to the repository for this
-trussed = { git = "ssh://git@github.com/trussed-dev/trussed.git", branch = "main", features = ["clients-1"] }
-# trussed = { path = "../trussed", features = ["clients-1"] }
+trussed = { git = "ssh://git@github.com/trussed-dev/trussed.git", branch = "main" }
+# trussed = { path = "../trussed" }
