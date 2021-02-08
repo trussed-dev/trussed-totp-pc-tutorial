@@ -9,7 +9,7 @@ use clap::{
     SubCommand,
 };
 
-use crate::authenticator::{Authenticate, Command, Register};
+use crate::{authenticator::{Authenticate, Command, Register}, wireguard::{Unlock, WgCommand}};
 
 /// entry point to the CLI
 pub fn init_cli() -> (clap::ArgMatches<'static>, String) {
@@ -21,7 +21,7 @@ pub fn init_cli() -> (clap::ArgMatches<'static>, String) {
 }
 
 const ABOUT: &str = "
-An example app, using Trussed™, running on PC, implementing TOTP.
+An example app, using Trussed™, running on PC, implementing Wireguard.
 
 Project homepage: <https://github.com/trussed-dev/trussed-totp-pc-tutorial>.
 ";
@@ -77,6 +77,22 @@ pub fn clap_app() -> clap::App<'static, 'static> {
                  .required(true)
              )
         )
+
+        .subcommand(SubCommand::with_name("wireguard")
+        .about("Wireguard utilities")
+        .help("Subcommands: unlock")
+            .subcommand(SubCommand::with_name("unlock")
+            .about("Unlock this device to perform privileged actions")
+                .arg(Arg::with_name("PIN")
+                    .short("p")
+                    .long("pin")
+                    .help("Your pin code")
+                    .value_name("PIN")
+                    .required(true)
+                )
+    
+        )
+    )
     ;
 
     app
@@ -110,3 +126,36 @@ impl TryFrom<&'_ clap::ArgMatches<'static>> for Command {
     }
 }
 
+
+impl TryFrom<&'_ clap::ArgMatches<'static>> for WgCommand {
+    type Error = Error;
+    fn try_from(args: &clap::ArgMatches<'static>) -> Result<Self> {
+
+
+        match args.subcommand_matches("wireguard") 
+        {
+            Some(wg_command) => 
+            {
+
+                match wg_command.subcommand_matches("unlock")
+                {
+                    Some (command) => { 
+                    
+                        let pin = match command.value_of("PIN") {
+                            Some(s) => {s},
+                            None => {return Err(anyhow::anyhow!("Could not parse pin"));}
+    
+                        };
+                       return Ok(WgCommand::Unlock(Unlock {
+                        pin : pin.to_string()
+                    })
+                )},
+                    None => {return Err(anyhow::anyhow!("Please provide a param."));}
+                }
+
+            },
+            None => {return  Err(anyhow::anyhow!("Unexpected case"))}
+        }
+
+    }
+}
