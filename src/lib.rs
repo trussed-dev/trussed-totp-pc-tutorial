@@ -46,6 +46,7 @@ pub use anyhow::Result;
 pub mod authenticator;
 pub mod cli;
 pub mod platform;
+pub mod wireguard;
 
 #[cfg(feature = "include-main-in-lib-for-docs")]
 pub mod main;
