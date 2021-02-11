@@ -5,7 +5,7 @@
 //! persistent storage, and RAM array-backed implementations for the volatile storage.
 use std::{fs::File, io::{Seek as _, SeekFrom}};
 
-pub use generic_array::{GenericArray, typenum::{consts, U16, U128, U256, U1022}};
+pub use generic_array::{GenericArray, typenum::{consts, U16, U128, U256, U512, U1022}};
 use littlefs2::{const_ram_storage, fs::{Allocation, Filesystem}};
 use log::info;
 use trussed::types::{LfsResult, LfsStorage};
@@ -49,14 +49,14 @@ impl FileFlash {
 }
 
 impl littlefs2::driver::Storage for FileFlash {
-    const READ_SIZE: usize = 8;
-    const WRITE_SIZE: usize = 8;
-    const BLOCK_SIZE: usize = 128;
+    const READ_SIZE: usize = 16;
+    const WRITE_SIZE: usize = 16;
+    const BLOCK_SIZE: usize = 512;
 
-    const BLOCK_COUNT: usize = 1024;
+    const BLOCK_COUNT: usize = 128;
     const BLOCK_CYCLES: isize = -1;
 
-    type CACHE_SIZE = U128;
+    type CACHE_SIZE = U512;
     type LOOKAHEADWORDS_SIZE = U16;
     /// TODO: We can't actually be changed currently
     type FILENAME_MAX_PLUS_ONE = U256;

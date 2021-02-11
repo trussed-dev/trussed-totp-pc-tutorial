@@ -1,7 +1,7 @@
 #![deny(missing_docs)]
-//! # Trussed™-based TOTP authenticator, for PC.
+//! # Trussed®-based TOTP authenticator, for PC.
 //!
-//! This is a demo implementation of a TOTP authenticator, built on [Trussed™][trussed].
+//! This is a demo implementation of a TOTP authenticator, built on [Trussed®][trussed].
 //!
 //! In general, Trussed requires a platform-specific implementation of its `Platform` trait,
 //! encapsulating:

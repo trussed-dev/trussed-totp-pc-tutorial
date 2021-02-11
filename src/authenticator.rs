@@ -1,6 +1,6 @@
 //! The example TOTP authenticator of this tutorial.
 //!
-//! While not a requirement from Trussed™, we use a pattern of declaring
+//! While not a requirement from Trussed®, we use a pattern of declaring
 //! command/request inputs (`Register` and `Authenticate`) as Rust structs.
 //!
 //! This pushes (or can help to push) the question of lower-level protocol
@@ -18,7 +18,7 @@ use trussed::{ByteBuf, types::{Mechanism, /*SignatureSerialization, StorageAttri
 use crate::Result;
 
 
-/// The core "app", implementing TOTP authentication, using Trussed™
+/// The core "app", implementing TOTP authentication, using Trussed®
 pub struct Authenticator<T>
 where
     T: trussed::Client,

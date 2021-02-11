@@ -21,7 +21,7 @@ pub fn init_cli() -> (clap::ArgMatches<'static>, String) {
 }
 
 const ABOUT: &str = "
-An example app, using Trussed™, running on PC, implementing TOTP.
+An example app, using Trussed®, running on PC, implementing TOTP.
 
 Project homepage: <https://github.com/trussed-dev/trussed-totp-pc-tutorial>.
 ";

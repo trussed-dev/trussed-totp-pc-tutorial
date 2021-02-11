@@ -1,6 +1,6 @@
 # trussed-totp-pc-tutorial
 
-This is a simple application implementing OATH TOTP, built on [Trussed™][trussed].
+This is a simple application implementing OATH TOTP, built on [Trussed][trussed]<sup>®</sup>.
 
 To try it out, run `make install`, and then for instance
 ```
