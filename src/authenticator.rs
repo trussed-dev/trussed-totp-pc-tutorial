@@ -13,15 +13,13 @@ use delog::hex_str;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use trussed::{consts, syscall, try_syscall, types::Message};
-use trussed::{ByteBuf, types::{Mechanism, /*SignatureSerialization, StorageAttributes,*/ StorageLocation}};
+use trussed::{ByteBuf, types::{Mechanism, /*SignatureSerialization, StorageAttributes,*/ Location}};
 
 use crate::Result;
 
 
 /// The core "app", implementing TOTP authentication, using Trussed®
 pub struct Authenticator<T>
-where
-    T: trussed::Client,
 {
     trussed: T,
 }
@@ -81,7 +79,7 @@ pub struct Credential {
 
 impl<T> Authenticator<T>
 where
-    T: trussed::client::Totp
+    T: trussed::Client + trussed::client::mechanisms::Totp,
 {
     /// Constructor, consumes a Trussed client
     pub fn new(trussed: T) -> Self {
@@ -103,7 +101,7 @@ where
         // 2. Store secret in Trussed
         let key_handle = syscall!(
             self.trussed
-                .unsafe_inject_totp_key(&raw_key, StorageLocation::Internal)
+                .unsafe_inject_totp_key(&raw_key, Location::Internal)
         ).key;
         info!("new key handle: {:?}", key_handle);
 
@@ -122,7 +120,7 @@ where
         debug!("saving to filename {}", filename.as_ref());
 
         syscall!(self.trussed.write_file(
-            StorageLocation::Internal,
+            Location::Internal,
             filename,
             ByteBuf::try_from_slice(&*serialized_credential).unwrap(),
             None
@@ -141,7 +139,7 @@ where
         // 1. Load credential
         let filename = self.filename_for_label(&label);
         let serialized_credential = try_syscall!(self.trussed.read_file(
-            StorageLocation::Internal,
+            Location::Internal,
             filename,
         ))
             .map_err(|_| anyhow::anyhow!("Could not find a credential labelled {}", label))?
@@ -165,7 +163,7 @@ where
         // debug!("calculated HMAC: {}", hex_str!(&hmac, 4));
 
         let otp = syscall!(self.trussed.sign_totp(
-            &credential.key_handle,
+            credential.key_handle,
             counter,
         )).signature;
 
