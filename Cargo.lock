@@ -901,7 +901,7 @@ dependencies = [
 [[package]]
 name = "trussed"
 version = "0.1.0"
-source = "git+https://github.com/trussed-dev/trussed?branch=main#f9691650644ac04f3b31f6fc3764736d895acecb"
+source = "git+https://github.com/trussed-dev/trussed?branch=main#d49689b4174d87d2865d2e91eda5f92068f579ce"
 dependencies = [
  "aes",
  "block-cipher-trait",
