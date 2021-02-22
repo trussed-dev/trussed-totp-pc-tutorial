@@ -58,11 +58,26 @@ pub fn main() -> Result<()> {
             wireguard.unlock(&unlock);
         }
        
-        wireguard::WgCommand::RegisterPrivatekey(_) => {}
-        wireguard::WgCommand::UpdatePrivatekey(_) => {}
-        wireguard::WgCommand::DeletePrivatekey(_) => {}
-        wireguard::WgCommand::GenerateKeyPair(_) => {}
-        wireguard::WgCommand::GetAead(_) => {}
+        wireguard::WgCommand::RegisterPrivatekey(registerPrivKey) =>
+         {
+            wireguard.register_private_key(&registerPrivKey);
+         }
+        wireguard::WgCommand::UpdatePrivatekey(updatePrivateKey) => 
+        {
+            
+        }
+        wireguard::WgCommand::DeletePrivatekey(deletePrivateKey) => 
+        {
+
+        }
+        wireguard::WgCommand::GenerateKeyPair(generateKeyPair) => 
+        {
+
+        }
+        wireguard::WgCommand::GetAead(getAead) => {
+
+            wireguard.get_aead(&getAead);
+        }
     }
 
     Ok(())
