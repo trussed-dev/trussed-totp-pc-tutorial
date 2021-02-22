@@ -34,7 +34,7 @@ Perhaps not interesting for NPX:
 
 use core::convert::TryInto;
 
-use delog::hex_str;
+use chacha20::ChaCha;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use trussed::{consts, syscall, try_syscall, types::Message};
@@ -73,7 +73,8 @@ pub struct Wireguard <T : trussed::Client>
  {
      pub pubkey: [u8;SIZE_PUBKEY],
      pub c : [u8; SIZE_CK],
-     pub h : [u8; SIZE_HS]
+     pub h : [u8; SIZE_HS],
+     pub key_id : u32
  }
 
  //  Authenticate                    params: PIN/pass         - Unlocks the device to use it. 
@@ -120,18 +121,13 @@ pub struct Wireguard <T : trussed::Client>
  #[allow(missing_docs)]
  pub struct AEAD(pub [u8;32]);
 
-  
- #[derive(Clone, Debug, PartialEq)]
- #[allow(missing_docs)]
- pub struct PrivateKeyUid(pub u32);
-
 
  #[derive(Clone, Debug, PartialEq)]
  #[allow(missing_docs)]
  pub struct GenerateKeyPairResponse
  {
     pub pubkey : [u8; SIZE_PUBKEY],
-    pub uid : PrivateKeyUid // Uid of the respective private key
+    pub uid : u32 // Uid of the respective private key
  }
 
 
@@ -145,20 +141,17 @@ impl core::fmt::Display for AEAD {
     }
 }
 
-
-impl core::fmt::Display for PrivateKeyUid {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
 impl core::fmt::Display for GenerateKeyPairResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{:x?} w/ UID: {}", self.pubkey, self.uid)
     }
 }
 
-
+impl core::fmt::Display for GetAead {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "\nC: \t\t{:x?}\nH: \t\t{:x?}\nPubkey: \t{:x?}\nkeyid: \t\t{:x?}\n", self.c, self.h, self.pubkey, self.key_id)
+    }
+}
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -209,12 +202,37 @@ where
         Ok(())
     }
 
-    pub fn get_aead(&mut self, parameters: &Unlock) -> Result<()> {
+    pub fn register_private_key(&mut self, parameters: &RegisterPrivatekey) -> Result<()> {
 
-        debug!("get_aead called: {:?}", parameters);
-
-        // done
         Ok(())
+    }
+
+    pub fn update_private_key( &mut self, parameters: &UpdatePrivatekey) -> Result<()> {
+
+        Ok(())
+    }
+
+    pub fn delete_private_key( &mut self, parameters: &DeletePrivatekey) -> Result<()> {
+
+        Ok(())
+    }
+    pub fn generate_key_pair( &mut self, parameters: &GenerateKeyPair) -> Result<GenerateKeyPairResponse> {
+
+        Ok(GenerateKeyPairResponse{pubkey : [0;32], uid : 0})
+    }
+
+    pub fn get_aead(&mut self, parameters: &GetAead) -> Result<AEAD> {
+
+        print!("GetAEAD called. Params: {}", *parameters);
+        /*
+            params -> pubkey, C, H 
+             - Trussed:  obtain the private key handle
+             - Trussed:  dhparam = DH(privkey, parameters->pubkey)
+             - Trussed:  Ck = KDF2 ( parameters->c, dhparam )
+             - Trussed:  aead = chacha20poly1305(ZERO_NONCE, timestamp, parameters->h )
+             Return AEAD 
+        */
+        Ok(AEAD([0;32]))
     }
 }
 
