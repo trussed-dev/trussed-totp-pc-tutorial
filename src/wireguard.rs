@@ -32,12 +32,9 @@ Perhaps not interesting for NPX:
 
 **/
 
-use core::convert::TryInto;
-
-use chacha20::ChaCha;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
-use trussed::{consts, syscall, try_syscall, types::Message};
+use trussed::{api::reply::Delete, consts, syscall, try_syscall, types::Message};
 use trussed::{ByteBuf, types::{Mechanism, /*SignatureSerialization, StorageAttributes,*/ StorageLocation}};
 
 use crate::Result;
@@ -87,21 +84,24 @@ pub struct Wireguard <T : trussed::Client>
 
  #[derive(Clone, Debug, PartialEq)]
  #[allow(missing_docs)]
- pub struct RegisterPrivatekey
+ pub struct RegisterKeyPair
  {
      pub privkey : [u8; SIZE_PRIVKEY],
+     pub pubkey : [u8; SIZE_PUBKEY],
+     pub label : String
  }
  #[derive(Clone, Debug, PartialEq)]
  #[allow(missing_docs)]
- pub struct UpdatePrivatekey
+ pub struct UpdateKeyPair
  {
-     pub privkey : [u8; SIZE_PRIVKEY],
-     pub uid : u32 // unique ID 
+    pub privkey : [u8; SIZE_PRIVKEY],
+    pub pubkey : [u8; SIZE_PUBKEY],
+    pub label : String
  }
 
  #[derive(Clone, Debug, PartialEq)]
  #[allow(missing_docs)]
- pub struct DeletePrivatekey
+ pub struct DeleteKeyPair
  {
      pub uid : u32 // unique ID 
  }
@@ -110,9 +110,18 @@ pub struct Wireguard <T : trussed::Client>
  #[allow(missing_docs)]
  pub struct GenerateKeyPair
  {
-    // empty!
+    pub uid : u32, // unique ID 
+    pub label : String
  }
  
+ #[derive(Clone, Debug, PartialEq)]
+ #[allow(missing_docs)]
+ pub struct ListKeys
+ {
+    //empty
+ }
+ 
+
 
  /*
     Reponses
@@ -124,12 +133,24 @@ pub struct Wireguard <T : trussed::Client>
 
  #[derive(Clone, Debug, PartialEq)]
  #[allow(missing_docs)]
- pub struct GenerateKeyPairResponse
+ pub struct KeyResponse
  {
-    pub pubkey : [u8; SIZE_PUBKEY],
-    pub uid : u32 // Uid of the respective private key
+    pub key_info : KeyInfo
  }
 
+
+ /**/
+
+ // To be serialized and safed in the trussed store
+ #[derive(Clone, Debug, PartialEq)]
+ #[allow(missing_docs)]
+ pub struct KeyInfo 
+ {
+
+    id : u64,
+    label : String,
+    pubkey : [u8; SIZE_PUBKEY]
+ }
 
 
 // implementations
@@ -141,9 +162,9 @@ impl core::fmt::Display for AEAD {
     }
 }
 
-impl core::fmt::Display for GenerateKeyPairResponse {
+impl core::fmt::Display for KeyResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:x?} w/ UID: {}", self.pubkey, self.uid)
+        write!(f, "{:x?} w/ UID: {} pubkey : {:x?}", self.key_info.id, self.key_info.label, self.key_info.pubkey)
     }
 }
 
@@ -159,9 +180,10 @@ impl core::fmt::Display for GetAead {
 #[allow(missing_docs)]
 pub enum WgCommand {
     Unlock(Unlock),
-    RegisterPrivatekey(RegisterPrivatekey),
-    UpdatePrivatekey(UpdatePrivatekey),
-    DeletePrivatekey(DeletePrivatekey),
+    RegisterKeyPair(RegisterKeyPair),
+    DeleteKeyPair(DeleteKeyPair),
+    UpdateKeyPair(UpdateKeyPair),
+    ListKeys(ListKeys),
 
     GenerateKeyPair(GenerateKeyPair),
     GetAead(GetAead)
@@ -202,23 +224,53 @@ where
         Ok(())
     }
 
-    pub fn register_private_key(&mut self, parameters: &RegisterPrivatekey) -> Result<()> {
+    pub fn register_key_pair(&mut self, parameters: &RegisterKeyPair) -> Result<KeyResponse> {
 
-        Ok(())
+         /*
+            Trussed: safe a private key w/ label in the persistent storage. -> id 
+            return KeyResponse
+        */
+
+        Ok(KeyResponse{ key_info : KeyInfo{ pubkey : [0;32], id : 0, label : String::from("A key label!")}})
     }
 
-    pub fn update_private_key( &mut self, parameters: &UpdatePrivatekey) -> Result<()> {
+    pub fn update_key_pair( &mut self, parameters: &UpdateKeyPair) -> Result<KeyResponse> {
 
-        Ok(())
+       /*
+            Trussed: update a private key w/ label in the persistent storage. -> id 
+            return KeyResponse
+       */
+        Ok(KeyResponse{ key_info : KeyInfo{ pubkey : [0;32], id : 0, label : String::from("A key label!")}})
     }
 
-    pub fn delete_private_key( &mut self, parameters: &DeletePrivatekey) -> Result<()> {
+    pub fn delete_key_pair( &mut self, parameters: &DeleteKeyPair) -> Result<()> {
 
-        Ok(())
+
+        /*
+             TODO : Return Collection istead of single object
+             Trussed: find the private key via id and safely remove the information from the persistent storage
+         */
+ 
+         Ok(())
+     }
+
+    pub fn list_keys( &mut self, parameters: &ListKeys) -> Result<KeyResponse> {
+
+        /*
+            TODO : Return Collection istead of single object
+            Trussed: iterate keystore and return <id, label,> for each key
+        */
+        Ok(KeyResponse{ key_info : KeyInfo{ pubkey : [0;32], id : 0, label : String::from("A key label!")}})
     }
-    pub fn generate_key_pair( &mut self, parameters: &GenerateKeyPair) -> Result<GenerateKeyPairResponse> {
 
-        Ok(GenerateKeyPairResponse{pubkey : [0;32], uid : 0})
+    pub fn generate_key_pair( &mut self, parameters: &GenerateKeyPair) -> Result<KeyResponse> {
+
+        /*
+            Trussed: Generate a new key pair and store w/ label and id -> return id
+            return ID
+        */
+
+        Ok(KeyResponse{ key_info : KeyInfo{ pubkey : [0;32], id : 0, label : String::from("A key label!")}})
     }
 
     pub fn get_aead(&mut self, parameters: &GetAead) -> Result<AEAD> {
