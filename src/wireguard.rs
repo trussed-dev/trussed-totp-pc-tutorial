@@ -1,4 +1,6 @@
 //! Wireguard
+use anyhow::Error;
+use littlefs2::path::Path;
 /**
 
 no permissions / unknown user : 
@@ -103,14 +105,14 @@ pub struct Wireguard <T : trussed::Client>
  #[allow(missing_docs)]
  pub struct DeleteKeyPair
  {
-     pub uid : u32 // unique ID 
+     pub uid : u64 // unique ID 
  }
 
  #[derive(Clone, Debug, PartialEq)]
  #[allow(missing_docs)]
  pub struct GenerateKeyPair
  {
-    pub uid : u32, // unique ID 
+    pub uid : u64, // unique ID 
     pub label : String
  }
  
@@ -121,6 +123,13 @@ pub struct Wireguard <T : trussed::Client>
     //empty
  }
  
+ #[derive(Clone, Debug, PartialEq)]
+ #[allow(missing_docs)]
+ pub struct SetUnlockSecret
+ {
+     pub secret: String, // pin code to unlock the device
+ }
+
 
 
  /*
@@ -135,21 +144,35 @@ pub struct Wireguard <T : trussed::Client>
  #[allow(missing_docs)]
  pub struct KeyResponse
  {
-    pub key_info : KeyInfo
+    id : u64,
+    label : String,
+    pubkey : [u8; SIZE_PUBKEY],
  }
 
 
  /**/
+
+ #[derive(Clone, Debug, PartialEq)]
+ #[allow(missing_docs)]
+ struct UnlockStatus{
+     is_locked : bool,
+ }
+
+ #[derive(Clone, Debug, PartialEq)]
+ #[allow(missing_docs)]
+ struct UnlockSecret{
+     password : trussed::ByteBuf<consts::U256>,
+ }
 
  // To be serialized and safed in the trussed store
  #[derive(Clone, Debug, PartialEq)]
  #[allow(missing_docs)]
  pub struct KeyInfo 
  {
-
     id : u64,
     label : String,
-    pubkey : [u8; SIZE_PUBKEY]
+    pubkey : trussed::ByteBuf<consts::U256>,
+    privkey : trussed::types::ObjectHandle,
  }
 
 
@@ -185,6 +208,8 @@ pub enum WgCommand {
     UpdateKeyPair(UpdateKeyPair),
     ListKeys(ListKeys),
 
+    SetUnlockSecret(SetUnlockSecret),
+
     GenerateKeyPair(GenerateKeyPair),
     GetAead(GetAead)
 }
@@ -216,22 +241,80 @@ where
     Self { trussed }
     }
 
+    fn isUnlocked() -> bool
+    {
+        let ans = syscall!(self.trussed.read_file(
+            Location::Internal,
+            Path::from_cstr(Cstr::new("/wg/unlocked_status"))
+        ));
+        let locked_status :UnlockStatus;
+        match ans 
+        {
+            Some(byteBuf) => { locked_status = postcard::from_bytes(byteBuf.as_ref())}
+            Err(err) => {anyhow::Error("Could not read status")}
+        }
+        return locked_status.status;
+    }
+
+    fn setLockedStatus( status : bool )
+    {
+       let mut buf = [0u8; 512];
+       let serialied = postcard::to_slice(UnlockStatus(status), &mut buf)
+       .map_err(|_| anyhow::anyhow!("postcard serialization error"))?;
+
+       let ans = syscall!(self.trussed.write_file(
+            trussed::types::StorageLocation::internal,
+            Path::from_cstr(Cstr::new("/wg/unlocked_status")),
+            ByteBuf::try_from_slice(&*serialied).unwrap(),
+        ));
+
+        match ans 
+        {
+            Some(byteBuf) => {}
+            Err(err) => {anyhow::Error("Could not write status")}
+        }
+    }
+
+    pub fn setUnlockSecret(&mut self, parameters: &SetUnlockSecret) -> Result<()>  
+    {
+        let mut buf = [0u8; 512];
+        let serialied = postcard::to_slice(SetUnlockSecret, &mut buf)
+        .map_err(|_| anyhow::anyhow!("postcard serialization error"))?;
+ 
+        let ans = syscall!(self.trussed.write_file(
+             trussed::types::StorageLocation::internal,
+             Path::from_cstr(Cstr::new("/wg/unlock_secret")),
+             ByteBuf::try_from_slice(&*serialied).unwrap(),
+         ));
+    }
+
+    fn isSecretEqual(secret : String) -> bool
+    {
+        return true;
+    }
+
     pub fn unlock(&mut self, parameters: &Unlock) -> Result<()> {
 
         print!("Unlock called: {:?}", parameters);
 
+        if !self.isSecretEqual(parameters.pin){ Error("Secrets do not match");}
+
+        self.setLockedStatus(false);
         // done
         Ok(())
     }
 
     pub fn register_key_pair(&mut self, parameters: &RegisterKeyPair) -> Result<KeyResponse> {
 
+        let privkey;
+        let pubkey;
+        let label;
          /*
             Trussed: safe a private key w/ label in the persistent storage. -> id 
             return KeyResponse
         */
 
-        Ok(KeyResponse{ key_info : KeyInfo{ pubkey : [0;32], id : 0, label : String::from("A key label!")}})
+        Ok(KeyResponse{  pubkey : [0;32], id : 0, label : String::from("A key label!") })
     }
 
     pub fn update_key_pair( &mut self, parameters: &UpdateKeyPair) -> Result<KeyResponse> {
@@ -240,7 +323,7 @@ where
             Trussed: update a private key w/ label in the persistent storage. -> id 
             return KeyResponse
        */
-        Ok(KeyResponse{ key_info : KeyInfo{ pubkey : [0;32], id : 0, label : String::from("A key label!")}})
+        Ok(KeyResponse{ pubkey : [0;32], id : 0, label : String::from("A key label!")})
     }
 
     pub fn delete_key_pair( &mut self, parameters: &DeleteKeyPair) -> Result<()> {
@@ -260,7 +343,7 @@ where
             TODO : Return Collection istead of single object
             Trussed: iterate keystore and return <id, label,> for each key
         */
-        Ok(KeyResponse{ key_info : KeyInfo{ pubkey : [0;32], id : 0, label : String::from("A key label!")}})
+        Ok(KeyResponse{pubkey : [0;32], id : 0, label : String::from("A key label!")})
     }
 
     pub fn generate_key_pair( &mut self, parameters: &GenerateKeyPair) -> Result<KeyResponse> {
@@ -270,7 +353,7 @@ where
             return ID
         */
 
-        Ok(KeyResponse{ key_info : KeyInfo{ pubkey : [0;32], id : 0, label : String::from("A key label!")}})
+        Ok(KeyResponse{ pubkey : [0;32], id : 0, label : String::from("A key label!")})
     }
 
     pub fn get_aead(&mut self, parameters: &GetAead) -> Result<AEAD> {
