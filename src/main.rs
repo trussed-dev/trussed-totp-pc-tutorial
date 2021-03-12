@@ -6,7 +6,7 @@ use log::info;
 // #[cfg(feature = "include-main-in-lib-for-docs")]
 // use crate::{authenticator, cli, platform};
 // #[cfg(not(feature = "include-main-in-lib-for-docs"))]
-use tutorial::{authenticator, cli, platform};
+use tutorial::{wireguard, authenticator, cli, platform};
 
 
 /// Simplified "runner" to demonstrate the TOTP authenticator app.
@@ -33,38 +33,55 @@ pub fn main() -> Result<()> {
 
     let (args, state_file) = cli::init_cli();
 
-    // setup platform (in our case, PC)
-    let trussed_platform = platform::init_platform(state_file);
+    //setup wireguard
+    let trussed_platform_wg = platform::init_platform(state_file.clone());
+    let mut trussed_service_wg = trussed::service::Service::new(trussed_platform_wg);
+    let client_id_wg = "wireguard";
+    let trussed_client_wg = trussed_service_wg.try_as_new_client(client_id_wg).unwrap();
+    let mut wireguard = wireguard::Wireguard::new(trussed_client_wg);
 
-    // setup Trussed
-    let mut trussed_service = trussed::service::Service::new(trussed_platform);
-    let client_id = "totp";
-    // In real life, `trussed_service.try_new_client` has an additional parameter that is a `Syscall`
-    // implementation; giving the client a way to signal the ambient runtime to call the service.
-    // Here, we use the service's implementation of `Syscall`, where it simply calls itself :)
-    let trussed_client = trussed_service.try_as_new_client(client_id).unwrap();
-
-    // setup authenticator
-    let mut authenticator = authenticator::Authenticator::new(trussed_client);
-
-
+    
     // The "runner"'s actual "scheduling" part starts here
     info!("Let's go!");
 
+
+
     // the "args" come in over the CLI "interface", and are "deserialized" for processing
     // using `Command`'s implementation of `TryFrom`, the standard Trait for fallible type conversion
-    let command = authenticator::Command::try_from(&args)?;
+    let wg_command = wireguard::WgCommand::try_from(&args)?;
+
 
     // the command is "dispatched" into the application
-    match command {
-        authenticator::Command::Register(register) => {
-            authenticator.register(&register)?;
+    match wg_command {
+       wireguard::WgCommand::Unlock(unlock) => 
+        {
+            wireguard.unlock(&unlock);
         }
-        authenticator::Command::Authenticate(authenticate) => {
-            let otp = authenticator.authenticate(&authenticate)?;
+       
+        wireguard::WgCommand::RegisterKeyPair(register_key_pair) =>
+         {
+            wireguard.register_key_pair(&register_key_pair);
+         }
+        wireguard::WgCommand::UpdateKeyPair(update_key_pair) => 
+        {
+            
+        }
+        wireguard::WgCommand::DeleteKeyPair(delete_key_pair) => 
+        {
 
-            // the application response is "dispatched" back over the CLI
-            println!("{}", &otp);
+        }
+        wireguard::WgCommand::GenerateKeyPair(generate_key_pair) => 
+        {
+
+        }
+
+        wireguard::WgCommand::ListKeys(list_keys) => 
+        {
+
+        }
+        wireguard::WgCommand::GetAead(get_aead) => {
+
+            wireguard.get_aead(&get_aead);
         }
     }
 
