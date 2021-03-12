@@ -16,9 +16,10 @@ clap = { version = "2.33.3", default-features = false }
 data-encoding = "2.3.2"
 delog = "0.1.0-alpha.3"
 generic-array = "0.14.3"
-littlefs2 = "0.1.0"
+littlefs2 = "0.2.1"
 log = "0.4.14"
-postcard = "0.5.1"
+# postcard = "0.5.1"
+postcard = { git = "https://github.com/nickray/postcard", branch = "bump-heapless" }
 rand_core = { version = "0.5.1", features = ["getrandom"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 pretty_env_logger = "0.4.0"
