@@ -6,7 +6,7 @@
 use std::{fs::File, io::{Seek as _, SeekFrom}};
 
 pub use generic_array::{GenericArray, typenum::{consts, U16, U128, U256, U512, U1022}};
-use littlefs2::{const_ram_storage, fs::{Allocation, Filesystem}};
+use littlefs2::const_ram_storage;
 use log::info;
 use trussed::types::{LfsResult, LfsStorage};
 

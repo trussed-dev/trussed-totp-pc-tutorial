@@ -13,7 +13,7 @@ use delog::hex_str;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
 use trussed::{consts, syscall, try_syscall, types::Message};
-use trussed::{ByteBuf, types::{Mechanism, /*SignatureSerialization, StorageAttributes,*/ Location}};
+use trussed::{Bytes, types::{Mechanism, /*SignatureSerialization, StorageAttributes,*/ Location}};
 
 use crate::Result;
 
@@ -72,7 +72,7 @@ impl core::fmt::Display for Otp {
 /// The `serde::Serialize` and `serde::Deserialize` implementations allow
 /// credentials to easily be stored in binary format.
 pub struct Credential {
-    label: trussed::ByteBuf<consts::U256>,
+    label: trussed::Bytes<consts::U256>,
     period_seconds: u64,
     key_handle: trussed::types::ObjectHandle,
 }
@@ -101,13 +101,13 @@ where
         // 2. Store secret in Trussed
         let key_handle = syscall!(
             self.trussed
-                .unsafe_inject_totp_key(&raw_key, Location::Internal)
+                .unsafe_inject_shared_key(&raw_key, Location::Internal)
         ).key;
         info!("new key handle: {:?}", key_handle);
 
         // 3. Generate credential
         let credential = Credential {
-            label: ByteBuf::try_from_slice(label.as_bytes()).map_err(EmptyError::from)?,
+            label: Bytes::try_from_slice(label.as_bytes()).map_err(EmptyError::from)?,
             period_seconds: *period_seconds,
             key_handle,
         };
@@ -122,7 +122,7 @@ where
         syscall!(self.trussed.write_file(
             Location::Internal,
             filename,
-            ByteBuf::try_from_slice(&*serialized_credential).unwrap(),
+            Bytes::try_from_slice(&*serialized_credential).unwrap(),
             None
         ));
 
