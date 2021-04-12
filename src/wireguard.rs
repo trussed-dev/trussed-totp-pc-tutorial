@@ -32,9 +32,8 @@ Perhaps not interesting for NPX:
 
 **/
 
-use log::{debug, info};
 use serde::{Deserialize, Serialize};
-use trussed::{ consts, syscall, try_syscall, types::{KeySerialization, Location, Message, ObjectHandle, UniqueId, Vec}};
+use trussed::{ consts, syscall, types::{KeySerialization, Location,Vec}};
 use trussed::{ByteBuf, types::{Mechanism}};
 
 use crate::Result;
@@ -225,11 +224,13 @@ where
     Self { trussed }
     }
 
-    fn initStore(&mut self) // to be called when paths dont exist
+
+    /*
+    fn init_store(&mut self) // to be called when paths dont exist
     {
 
     }
-
+*/
     fn is_unlocked(&mut self) -> bool
     {
         let strpath = "/wg/unlocked_status";
@@ -269,13 +270,13 @@ where
         let r = syscall!(self.trussed.read_file(Location::Internal,p));
        
 
-        let mut keyInfos : Vec::<Option::<KeyInfo>, heapless::consts::U8> ;
+        let key_infos : Vec::<Option::<KeyInfo>, heapless::consts::U8> ;
         match postcard::from_bytes(&r.data)
         {
-            Ok(val) => { keyInfos = val;}
-            Err(_) =>{ keyInfos= Vec::<Option::<KeyInfo>, heapless::consts::U8>::new() }
+            Ok(val) => { key_infos = val;}
+            Err(_) =>{ key_infos= Vec::<Option::<KeyInfo>, heapless::consts::U8>::new() }
         }
-        return Ok(keyInfos);
+        return Ok(key_infos);
 
     }
 
@@ -283,9 +284,9 @@ where
     {
 
     
-        let mut keyInfos = self.get_list_keys().unwrap();
+        let mut key_infos = self.get_list_keys().unwrap();
         // check if exists
-        for (_, ele ) in keyInfos.iter().enumerate()
+        for (_, ele ) in key_infos.iter().enumerate()
         {
             if ele.is_some() && ele.clone().unwrap().label == val.label
             {
@@ -297,7 +298,7 @@ where
 
 
         // Set new key 
-        match keyInfos.push(Option::<KeyInfo>::from(KeyInfo{label: val.label.clone(), privkey : val.privkey}))
+        match key_infos.push(Option::<KeyInfo>::from(KeyInfo{label: val.label.clone(), privkey : val.privkey}))
         {
             Ok(_) => {}
             Err(_) => {}
@@ -307,7 +308,7 @@ where
        //Write keys
        let strpath = "/wg/key_store";
         let mut buf = [0u8; 10000];
-        let serialied = postcard::to_slice(&keyInfos.clone(), &mut buf)
+        let serialied = postcard::to_slice(&key_infos.clone(), &mut buf)
         .expect("cannot serialize");
         let p =  trussed::types::PathBuf::from(strpath.as_bytes());
         syscall!(self.trussed.write_file(
@@ -332,7 +333,7 @@ where
     }
 
 ////////////////////////////
-    pub fn set_unlock_secret(&mut self, parameters: &SetUnlockSecret) -> Result<()>  
+    pub fn set_unlock_secret(&mut self, _: &SetUnlockSecret) -> Result<()>  
     {
             Ok(())
     }
@@ -378,7 +379,7 @@ where
         Ok(KeyResponse{  pubkey : [0;32], id : 0, label : String::from("A key label!") })
     }
 
-    pub fn update_key_pair( &mut self, parameters: &UpdateKeyPair) -> Result<KeyResponse> {
+    pub fn update_key_pair( &mut self, _: &UpdateKeyPair) -> Result<KeyResponse> {
 
        /*
             Trussed: update a private key w/ label in the persistent storage. -> id 
@@ -387,7 +388,7 @@ where
         Ok(KeyResponse{ pubkey : [0;32], id : 0, label : String::from("A key label!")})
     }
 
-    pub fn delete_key_pair( &mut self, parameters: &DeleteKeyPair) -> Result<()> {
+    pub fn delete_key_pair( &mut self, _: &DeleteKeyPair) -> Result<()> {
 
 
         /*

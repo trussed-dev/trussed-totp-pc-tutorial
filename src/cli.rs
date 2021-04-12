@@ -2,7 +2,7 @@
 use core::convert::TryFrom;
 
 use anyhow::{Error, Result};
-use clap::{App, Arg, ArgGroup, SubCommand, crate_authors, crate_version};
+use clap::{App, Arg, SubCommand, crate_authors, crate_version};
 
 use crate::{authenticator::{Authenticate, Command, Register}, wireguard::{GenerateKeyPair, GetAead, ListKeys, RegisterKeyPair, Unlock, WgCommand}};
 

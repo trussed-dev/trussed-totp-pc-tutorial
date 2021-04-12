@@ -6,7 +6,7 @@ use log::info;
 // #[cfg(feature = "include-main-in-lib-for-docs")]
 // use crate::{authenticator, cli, platform};
 // #[cfg(not(feature = "include-main-in-lib-for-docs"))]
-use tutorial::{wireguard, authenticator, cli, platform};
+use tutorial::{wireguard, cli, platform};
 
 
 /// Simplified "runner" to demonstrate the TOTP authenticator app.
@@ -55,40 +55,40 @@ pub fn main() -> Result<()> {
     match wg_command {
        wireguard::WgCommand::Unlock(unlock) => 
         {
-            wireguard.unlock(&unlock);
+            wireguard.unlock(&unlock).ok();
         }
        
         wireguard::WgCommand::RegisterKeyPair(register_key_pair) =>
          {
-            wireguard.register_key_pair(&register_key_pair);
+            wireguard.register_key_pair(&register_key_pair).ok();
          }
         wireguard::WgCommand::UpdateKeyPair(update_key_pair) => 
         {
-            
+            wireguard.update_key_pair(&update_key_pair).ok();
         }
         wireguard::WgCommand::DeleteKeyPair(delete_key_pair) => 
         {
-
+            wireguard.delete_key_pair(&delete_key_pair).ok();
         }
         wireguard::WgCommand::GenerateKeyPair(generate_key_pair) => 
         {
-            wireguard.generate_key_pair(&generate_key_pair);
+            wireguard.generate_key_pair(&generate_key_pair).ok();
         }
 
-        wireguard::WgCommand::ListKeys(list_keys) => 
+        wireguard::WgCommand::ListKeys(_) => 
         {
-            wireguard.list_keys();
+            wireguard.list_keys().ok();
         }
 
         wireguard::WgCommand::SetUnlockSecret(secret) => 
         {
-
+            wireguard.set_unlock_secret(&secret).ok();
         }
 
     
         wireguard::WgCommand::GetAead(get_aead) => {
 
-            wireguard.get_aead(&get_aead);
+            wireguard.get_aead(&get_aead).ok();
         }
     }
 
