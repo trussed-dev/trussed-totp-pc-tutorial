@@ -72,13 +72,20 @@ pub fn main() -> Result<()> {
         }
         wireguard::WgCommand::GenerateKeyPair(generate_key_pair) => 
         {
-
+            wireguard.generate_key_pair(&generate_key_pair);
         }
 
         wireguard::WgCommand::ListKeys(list_keys) => 
         {
+            wireguard.list_keys();
+        }
+
+        wireguard::WgCommand::SetUnlockSecret(secret) => 
+        {
 
         }
+
+    
         wireguard::WgCommand::GetAead(get_aead) => {
 
             wireguard.get_aead(&get_aead);

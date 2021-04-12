@@ -17,7 +17,8 @@ data-encoding = "2.3.2"
 delog = "0.1.0-alpha.3"
 generic-array = "0.14.3"
 littlefs2 = "0.1.0"
-log = "0.4.14"
+log = "0.4.14"  
+heapless = "0.6.1"
 postcard = "0.5.1"
 rand_core = { version = "0.5.1", features = ["getrandom"] }
 serde = { version = "1", default-features = false, features = ["derive"] }

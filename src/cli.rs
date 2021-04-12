@@ -4,7 +4,7 @@ use core::convert::TryFrom;
 use anyhow::{Error, Result};
 use clap::{App, Arg, ArgGroup, SubCommand, crate_authors, crate_version};
 
-use crate::{authenticator::{Authenticate, Command, Register}, wireguard::{Unlock, GetAead, WgCommand}};
+use crate::{authenticator::{Authenticate, Command, Register}, wireguard::{GenerateKeyPair, GetAead, ListKeys, RegisterKeyPair, Unlock, WgCommand}};
 
 /// entry point to the CLI
 pub fn init_cli() -> (clap::ArgMatches<'static>, String) {
@@ -90,19 +90,38 @@ pub fn clap_app() -> clap::App<'static, 'static> {
         .subcommand(SubCommand::with_name("register")
         .about("Register a private key")
             .arg(Arg::with_name("PRIVKEY")
-            .short("p")
             .long("privkey")
             .help("The private key to be registered")
             .value_name("PRIVKEY")
             .required(true)
         )
-            .arg(Arg::with_name("LABEL")
-            .short("l")
-            .help("An optional label")
-            .value_name("LABEL")
-            .required(true)
-       )
+        .arg(Arg::with_name("PUBKEY")
+        .long("pubkey")
+        .help("private keys corresponding publickey")
+        .value_name("PUBKEY")
+        .required(true)
         )
+        .arg(Arg::with_name("LABEL")
+        .short("l")
+        .help("An optional label")
+        .value_name("LABEL")
+        .required(true)
+        )
+        )
+
+        .subcommand(SubCommand::with_name("generate")
+        .about("Create a new key pair")
+        .arg(Arg::with_name("LABEL")
+        .short("l")
+        .help("A label")
+        .value_name("LABEL")
+        .required(true)
+        )
+        )
+
+        .subcommand(SubCommand::with_name("list")
+        .about("List of stored keys"))
+    
 
         .subcommand(SubCommand::with_name("aead")
         .about("Get an AEAD by providing C,H and a public key")
@@ -218,8 +237,51 @@ impl TryFrom<&'_ clap::ArgMatches<'static>> for WgCommand {
                     })
                 )}
 
+                // Register
+                if let Some (command) = wg_command.subcommand_matches("register")
+                {
+                    let label = match command.value_of("LABEL") {
+                        Some(s) => {s},
+                        None => {return Err(anyhow::anyhow!("Could not parse label"));}
+                    };
 
+                    let pubkey = match command.value_of("PUBKEY") {
+                        Some(s) => {hex_string_to32_char_array(s)},
+                        None => {return Err(anyhow::anyhow!("Could not parse public key"));}
+                    };
+
+                    let privkey = match command.value_of("PRIVKEY") {
+                        Some(s) => {hex_string_to32_char_array(s)},
+                        None => {return Err(anyhow::anyhow!("Could not parse private key"));}
+                    };
+
+
+                       return Ok(WgCommand::RegisterKeyPair(RegisterKeyPair {
+                       label : String::from(label),
+                       pubkey : pubkey.unwrap(),
+                       privkey : privkey.unwrap()
+
+                    })
+                )}
+
+                if let Some (command) = wg_command.subcommand_matches("generate")
+                {
+                    let label = match command.value_of("LABEL") {
+                        Some(s) => {s},
+                        None => {return Err(anyhow::anyhow!("Could not parse label"));}
+                    };
+
+                       return Ok(WgCommand::GenerateKeyPair(GenerateKeyPair{
+                       label : String::from(label),
+                    })
+                )}
+
+                if let Some (_) = wg_command.subcommand_matches("list")
+                {
+                   return Ok(WgCommand::ListKeys(ListKeys{}));
                 }
+            }
+
 
            Err(anyhow::anyhow!("Unexpected case"))
     }

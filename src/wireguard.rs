@@ -1,7 +1,5 @@
 //! Wireguard
-use anyhow::Error;
-use littlefs2::path::Path;
-/**
+/*
 
 no permissions / unknown user : 
 
@@ -36,8 +34,8 @@ Perhaps not interesting for NPX:
 
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
-use trussed::{api::reply::Delete, consts, syscall, try_syscall, types::Message};
-use trussed::{ByteBuf, types::{Mechanism, /*SignatureSerialization, StorageAttributes,*/ StorageLocation}};
+use trussed::{ consts, syscall, try_syscall, types::{KeySerialization, Location, Message, ObjectHandle, UniqueId, Vec}};
+use trussed::{ByteBuf, types::{Mechanism}};
 
 use crate::Result;
 
@@ -112,7 +110,6 @@ pub struct Wireguard <T : trussed::Client>
  #[allow(missing_docs)]
  pub struct GenerateKeyPair
  {
-    pub uid : u64, // unique ID 
     pub label : String
  }
  
@@ -152,10 +149,10 @@ pub struct Wireguard <T : trussed::Client>
 
  /**/
 
- #[derive(Clone, Debug, PartialEq)]
+ #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
  #[allow(missing_docs)]
  struct UnlockStatus{
-     is_locked : bool,
+    is_unlocked : bool,
  }
 
  #[derive(Clone, Debug, PartialEq)]
@@ -165,18 +162,13 @@ pub struct Wireguard <T : trussed::Client>
  }
 
  // To be serialized and safed in the trussed store
- #[derive(Clone, Debug, PartialEq)]
+ #[derive( Debug, PartialEq,Clone, Deserialize, Serialize)]
  #[allow(missing_docs)]
  pub struct KeyInfo 
  {
-    id : u64,
-    label : String,
-    pubkey : trussed::ByteBuf<consts::U256>,
+    label : trussed::ByteBuf<consts::U256>,
     privkey : trussed::types::ObjectHandle,
  }
-
-
-// implementations
 
 // hex
 impl core::fmt::Display for AEAD {
@@ -187,7 +179,7 @@ impl core::fmt::Display for AEAD {
 
 impl core::fmt::Display for KeyResponse {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:x?} w/ UID: {} pubkey : {:x?}", self.key_info.id, self.key_info.label, self.key_info.pubkey)
+        write!(f, "{:x?} w/ UID: {} pubkey : {:x?}", self.id, self.label, self.pubkey)
     }
 }
 
@@ -222,93 +214,162 @@ pub struct PrivateKey {
     key_handle: trussed::types::ObjectHandle,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-/// The `serde::Serialize` and `serde::Deserialize` implementations allow
-/// credentials to easily be stored in binary format.
-pub struct Credential {
-    label: trussed::ByteBuf<consts::U256>,
-    period_seconds: u64,
-    key_handle: trussed::types::ObjectHandle,
-}
 
 #[allow(missing_docs)]
 impl<T> Wireguard<T>
 where
-    T: trussed::Client
+    T: trussed::Client + trussed::client::mechanisms::X255,
 {
    /// Constructor, consumes a Trussed client
    pub fn new(trussed: T) -> Self {
     Self { trussed }
     }
 
-    fn isUnlocked() -> bool
+    fn initStore(&mut self) // to be called when paths dont exist
     {
+
+    }
+
+    fn is_unlocked(&mut self) -> bool
+    {
+        let strpath = "/wg/unlocked_status";
+        let p =  trussed::types::PathBuf::from(strpath.as_bytes());
+
         let ans = syscall!(self.trussed.read_file(
             Location::Internal,
-            Path::from_cstr(Cstr::new("/wg/unlocked_status"))
+            p
         ));
-        let locked_status :UnlockStatus;
-        match ans 
-        {
-            Some(byteBuf) => { locked_status = postcard::from_bytes(byteBuf.as_ref())}
-            Err(err) => {anyhow::Error("Could not read status")}
-        }
-        return locked_status.status;
+        let locked_status:UnlockStatus;
+        locked_status = postcard::from_bytes(&ans.data).expect("unable to deserialize");
+
+        return locked_status.is_unlocked;
     }
 
-    fn setLockedStatus( status : bool )
+    fn set_unlock_status(&mut self, status : bool )
     {
        let mut buf = [0u8; 512];
-       let serialied = postcard::to_slice(UnlockStatus(status), &mut buf)
-       .map_err(|_| anyhow::anyhow!("postcard serialization error"))?;
+       let serialied = postcard::to_slice(&UnlockStatus{is_unlocked : status}, &mut buf)
+       .expect("cannot serialize");
 
-       let ans = syscall!(self.trussed.write_file(
-            trussed::types::StorageLocation::internal,
-            Path::from_cstr(Cstr::new("/wg/unlocked_status")),
+       let strpath = "/wg/unlocked_status";
+       let p =  trussed::types::PathBuf::from(strpath.as_bytes());
+
+       syscall!(self.trussed.write_file(
+            Location::Internal,
+            p,
             ByteBuf::try_from_slice(&*serialied).unwrap(),
+            None
         ));
+    }
 
-        match ans 
+    fn get_list_keys(&mut self) -> Result<Vec::<Option::<KeyInfo>, heapless::consts::U8>>
+    {
+        let strpath = "/wg/key_store";
+        let p =  trussed::types::PathBuf::from(strpath.as_bytes());
+        let r = syscall!(self.trussed.read_file(Location::Internal,p));
+       
+
+        let mut keyInfos : Vec::<Option::<KeyInfo>, heapless::consts::U8> ;
+        match postcard::from_bytes(&r.data)
         {
-            Some(byteBuf) => {}
-            Err(err) => {anyhow::Error("Could not write status")}
+            Ok(val) => { keyInfos = val;}
+            Err(_) =>{ keyInfos= Vec::<Option::<KeyInfo>, heapless::consts::U8>::new() }
         }
+        return Ok(keyInfos);
+
     }
 
-    pub fn setUnlockSecret(&mut self, parameters: &SetUnlockSecret) -> Result<()>  
+    fn add_to_key_store(&mut self, val : &KeyInfo) -> Result<()>
     {
-        let mut buf = [0u8; 512];
-        let serialied = postcard::to_slice(SetUnlockSecret, &mut buf)
-        .map_err(|_| anyhow::anyhow!("postcard serialization error"))?;
- 
-        let ans = syscall!(self.trussed.write_file(
-             trussed::types::StorageLocation::internal,
-             Path::from_cstr(Cstr::new("/wg/unlock_secret")),
+
+    
+        let mut keyInfos = self.get_list_keys().unwrap();
+        // check if exists
+        for (_, ele ) in keyInfos.iter().enumerate()
+        {
+            if ele.is_some() && ele.clone().unwrap().label == val.label
+            {
+                // This key exists
+                print!("This key already exists.\n");
+                return Err(anyhow::anyhow!("This key exists"));
+            }
+        }
+
+
+        // Set new key 
+        match keyInfos.push(Option::<KeyInfo>::from(KeyInfo{label: val.label.clone(), privkey : val.privkey}))
+        {
+            Ok(_) => {}
+            Err(_) => {}
+        }
+       // print!("{:?}", keyInfos);
+
+       //Write keys
+       let strpath = "/wg/key_store";
+        let mut buf = [0u8; 10000];
+        let serialied = postcard::to_slice(&keyInfos.clone(), &mut buf)
+        .expect("cannot serialize");
+        let p =  trussed::types::PathBuf::from(strpath.as_bytes());
+        syscall!(self.trussed.write_file(
+             Location::Internal,
+             p,
              ByteBuf::try_from_slice(&*serialied).unwrap(),
+             None
          ));
+
+         Ok(())
     }
 
-    fn isSecretEqual(secret : String) -> bool
+    pub fn get_unlock_secret(&mut self)
     {
+            //Stub
+    }
+
+    fn is_secret_equal(&self, secret : &String) -> bool
+    {
+        secret.to_string();
         return true;
     }
 
+////////////////////////////
+    pub fn set_unlock_secret(&mut self, parameters: &SetUnlockSecret) -> Result<()>  
+    {
+            Ok(())
+    }
+
+
     pub fn unlock(&mut self, parameters: &Unlock) -> Result<()> {
 
-        print!("Unlock called: {:?}", parameters);
+        if !self.is_secret_equal(&parameters.pin)
+        { 
+            return Err(anyhow::anyhow!("Secret does not match"));
+        }
+        
+        self.set_unlock_status(true);
 
-        if !self.isSecretEqual(parameters.pin){ Error("Secrets do not match");}
-
-        self.setLockedStatus(false);
+        print!("Unlock status: {:?}", self.is_unlocked());
+        
         // done
         Ok(())
     }
 
     pub fn register_key_pair(&mut self, parameters: &RegisterKeyPair) -> Result<KeyResponse> {
 
-        let privkey;
-        let pubkey;
-        let label;
+
+        if !self.is_unlocked()
+        {
+            print!("Device is locked");
+            return Err(anyhow::anyhow!("Device is locked. Unlock first."));
+        }
+
+
+        print!("Privkey {:?}",parameters.privkey);
+        print!("Pubkey {:?}",parameters.pubkey);
+        print!("label {:?}",parameters.label);
+
+        //let privkey;
+        //let pubkey;
+        //let label;
          /*
             Trussed: safe a private key w/ label in the persistent storage. -> id 
             return KeyResponse
@@ -337,23 +398,56 @@ where
          Ok(())
      }
 
-    pub fn list_keys( &mut self, parameters: &ListKeys) -> Result<KeyResponse> {
+    pub fn list_keys( &mut self) -> Result<KeyResponse> {
 
-        /*
-            TODO : Return Collection istead of single object
-            Trussed: iterate keystore and return <id, label,> for each key
-        */
+        let key_list = self.get_list_keys().unwrap();
+        for (index, ele ) in key_list.iter().enumerate()
+        {
+            let pubkey = syscall!(self.trussed.derive_x255_public_key(ele.clone().unwrap().privkey,
+                Location::Internal,
+            )).key;
+
+            let pub_serialized = syscall!(self.trussed.serialize_key( Mechanism::X255, pubkey, KeySerialization::Raw)).serialized_key.into_vec();
+            print!("Key {:?}\nPublic Key: {:x?}\nLabel : {:?}\n\n",index+1,pub_serialized, ele.clone().unwrap().label)
+        }
         Ok(KeyResponse{pubkey : [0;32], id : 0, label : String::from("A key label!")})
     }
 
     pub fn generate_key_pair( &mut self, parameters: &GenerateKeyPair) -> Result<KeyResponse> {
+        
+        // Generate Keys
+        let privkey = syscall!(self.trussed.generate_x255_secret_key(
+            Location::Internal,
+        )).key;
 
+        let pubkey = syscall!(self.trussed.derive_x255_public_key(privkey,
+            Location::Internal,
+        )).key;
+
+       
+        //Store
+        let key_info = KeyInfo{ label : ByteBuf::try_from_slice( parameters.label.as_bytes()).map_err(EmptyError::from)?, privkey : privkey };
+        match self.add_to_key_store(&key_info)
+        {
+            Ok(_)=>{}
+            Err(err) =>{return Err(err);}
+        }
+        //Prepare response 
+        let pub_serialized = syscall!(self.trussed.serialize_key( Mechanism::X255, pubkey, KeySerialization::Raw)).serialized_key.into_vec();
+        let mut resp = KeyResponse{ pubkey : [0;32], id : 0, label : String::from(parameters.label.clone()) };
+
+        for (place, element) in resp.pubkey.iter_mut().zip(pub_serialized.iter()) {
+        *place = *element;
+        }
+
+       print!("Keys generated. \nPubkey: {:x?}, \nLabel: {:?}", resp.pubkey, resp.label);
+        // Generate key pair -> DH curve25519
         /*
             Trussed: Generate a new key pair and store w/ label and id -> return id
             return ID
         */
 
-        Ok(KeyResponse{ pubkey : [0;32], id : 0, label : String::from("A key label!")})
+        Ok(resp)
     }
 
     pub fn get_aead(&mut self, parameters: &GetAead) -> Result<AEAD> {
