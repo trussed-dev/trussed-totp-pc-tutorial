@@ -11,7 +11,7 @@ name = "tutorial"
 
 [dependencies]
 anyhow = "1"
-chacha20 = { version = "0.6.0", features = ["rng"] }
+chacha20 = { version = "0.7", features = ["rng"] }
 clap = { version = "2.33.3", default-features = false }
 data-encoding = "2.3.2"
 delog = "0.1.0-alpha.3"
@@ -20,7 +20,7 @@ littlefs2 = "0.2.1"
 log = "0.4.14"
 # postcard = "0.5.1"
 postcard = { git = "https://github.com/nickray/postcard", branch = "bump-heapless" }
-rand_core = { version = "0.5.1", features = ["getrandom"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
 serde = { version = "1", default-features = false, features = ["derive"] }
 pretty_env_logger = "0.4.0"
 # termion = "1.5.6"
