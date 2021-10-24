@@ -12,11 +12,12 @@ use core::convert::TryInto;
 use delog::hex_str;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
-use trussed::{consts, syscall, try_syscall, types::Message};
+use trussed::{syscall, try_syscall, types::Message};
 use trussed::{Bytes, types::{Mechanism, /*SignatureSerialization, StorageAttributes,*/ Location}};
 
 use crate::Result;
 
+const MAX_CRED_LABEL_LENGTH: usize = 256;
 
 /// The core "app", implementing TOTP authentication, using Trussed®
 pub struct Authenticator<T>
@@ -72,9 +73,9 @@ impl core::fmt::Display for Otp {
 /// The `serde::Serialize` and `serde::Deserialize` implementations allow
 /// credentials to easily be stored in binary format.
 pub struct Credential {
-    label: trussed::Bytes<consts::U256>,
+    label: trussed::Bytes<MAX_CRED_LABEL_LENGTH>,
     period_seconds: u64,
-    key_handle: trussed::types::ObjectHandle,
+    key_handle: trussed::types::KeyId,
 }
 
 impl<T> Authenticator<T>
@@ -107,7 +108,7 @@ where
 
         // 3. Generate credential
         let credential = Credential {
-            label: Bytes::try_from_slice(label.as_bytes()).map_err(EmptyError::from)?,
+            label: Bytes::from_slice(label.as_bytes()).map_err(EmptyError::from)?,
             period_seconds: *period_seconds,
             key_handle,
         };
@@ -122,7 +123,7 @@ where
         syscall!(self.trussed.write_file(
             Location::Internal,
             filename,
-            Bytes::try_from_slice(&*serialized_credential).unwrap(),
+            Bytes::from_slice(&*serialized_credential).unwrap(),
             None
         ));
 
@@ -179,7 +180,7 @@ where
 
     /// Helper method, using Trussed, to determine a filename for the Credential
     fn filename_for_label(&mut self, label: &str) -> trussed::types::PathBuf {
-        let filename = syscall!(self.trussed.hash(Mechanism::Sha256, Message::try_from_slice(label.as_bytes()).unwrap())).hash;
+        let filename = syscall!(self.trussed.hash(Mechanism::Sha256, Message::from_slice(label.as_bytes()).unwrap())).hash;
         let mut hex_filename = [0u8; 16];
         use std::io::Write as _;
         // first 8 bytes of SHA256 hash of label, as hexadecimal digits
